@@ -43,7 +43,7 @@ jobs:
       - name: Download Gradle 8.2.2
         run: |
           set -e
-          curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2.2-bin.zip
+          curl -sSL -o /tmp/gradle.zip https://github.com/gradle/gradle/releases/download/v8.2.2/gradle-8.2.2-bin.zip
           unzip -q /tmp/gradle.zip -d /tmp
           /tmp/gradle-8.2.2/bin/gradle --version
 
