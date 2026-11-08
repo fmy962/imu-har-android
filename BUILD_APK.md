@@ -6,6 +6,36 @@
 
 ---
 
+## ⭐ 推荐：GitHub Actions 云端构建（无需本机 SDK / 不受墙限制）
+
+> 如果本机**直连 Gradle 被墙**、**Clash 代理节点失效**或**没装 Android Studio**，用这条最省事：
+> GitHub 的编译机有干净直连网络，能直接下 Gradle、AGP、TFLite，自动编译出 APK。
+> 本工程已内置工作流 `.github/workflows/build-apk.yml`，你只需把 `android/` 推上 GitHub 即可。
+
+**步骤：**
+
+1. 在 GitHub 新建一个仓库（**可设为 Private 私有**，APK 不外泄）：
+   https://github.com/new  → 填仓库名（如 `imu-har-android`），不要勾 "Add README"。
+2. 在本机 `android/` 目录下，把代码推上去（把 `<你的仓库地址>` 换成实际地址）：
+   ```bash
+   cd android
+   git remote add origin <你的仓库地址>      # 形如 https://github.com/你的名/imu-har-android.git
+   git branch -M main
+   git push -u origin main
+   ```
+3. 推送后，GitHub 自动开始构建：
+   - 进仓库 → 顶部 **Actions** 标签 → 看到 `Build Debug APK` 任务在跑（约 5–10 分钟）。
+   - 若没自动跑：进 Actions → 左上角 **Run workflow** 手动触发。
+4. 构建完成 → 该任务右侧 **Artifacts** → 下载 **app-debug-apk**（解压得到 `app-debug.apk`）。
+5. 拿到 `app-debug.apk` 后，按下方"步骤 3：传到手机并安装"安装即可。
+
+> 想二次触发重新构建：改一行代码再 push，或 Actions 页点 Run workflow。
+> 费用：GitHub 私有仓库每月 2000 分钟免费额度，编一个 APK 只用几分钟，零成本。
+
+---
+
+## 备选：本机 Android Studio 构建（需本机能正常联网下载 Gradle）
+
 ## 前置：安装 Android Studio 与 SDK（仅首次需要）
 
 1. 下载：https://developer.android.google.cn/studio （国内走 google.cn 更快）
