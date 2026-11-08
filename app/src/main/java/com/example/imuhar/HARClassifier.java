@@ -43,8 +43,9 @@ public class HARClassifier {
 
     public HARClassifier(AssetManager assets, String modelName) throws IOException {
         MappedByteBuffer model = loadModelFile(assets, modelName);
-        interpreter = new Interpreter(model);
-        interpreter.setNumThreads(4);
+        Interpreter.Options opts = new Interpreter.Options();
+        opts.setNumThreads(4);
+        interpreter = new Interpreter(model, opts);
         loadScaler(assets, "scaler.json");
     }
 
