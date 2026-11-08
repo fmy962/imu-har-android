@@ -28,7 +28,7 @@ jobs:
           set -e
           mkdir -p "$ANDROID_HOME/cmdline-tools"
           echo "== 下载 command-line-tools =="
-          curl -sSL -o /tmp/ct.zip https://dl.google.com/android/repository/commandline-tools-linux-11076708_latest.zip
+          curl -sSL -o /tmp/ct.zip https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip
           unzip -q /tmp/ct.zip -d "$ANDROID_HOME/cmdline-tools"
           mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
