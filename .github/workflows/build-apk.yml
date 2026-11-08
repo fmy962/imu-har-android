@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,19 +23,29 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          build-tools: 34.0.0
-
-      - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+      - name: Install Android SDK (manual, no broken 3rd-party action)
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          echo "== 下载 command-line-tools =="
+          curl -sSL -o /tmp/ct.zip https://dl.google.com/android/repository/commandline-tools-linux-11076708_latest.zip
+          unzip -q /tmp/ct.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "== 接受 licenses =="
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          echo "== 安装 platform-tools / android-34 / build-tools 34.0.0 =="
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME"
 
       - name: Download Gradle 8.2.2
         run: |
-          curl -L -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2.2-bin.zip
+          set -e
+          curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.2.2-bin.zip
           unzip -q /tmp/gradle.zip -d /tmp
+          /tmp/gradle-8.2.2/bin/gradle --version
 
       - name: Build Debug APK
         run: /tmp/gradle-8.2.2/bin/gradle :app:assembleDebug --no-daemon
