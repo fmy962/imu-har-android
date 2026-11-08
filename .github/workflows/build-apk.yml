@@ -40,15 +40,24 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls "$ANDROID_HOME"
 
-      - name: Download Gradle 8.2.2
+      - name: Download Gradle 8.5
         run: |
           set -e
-          curl -sSL -o /tmp/gradle.zip https://github.com/gradle/gradle/releases/download/v8.2.2/gradle-8.2.2-bin.zip
+          for url in \
+            "https://github.com/gradle/gradle-distributions/releases/download/v8.5.0/gradle-8.5-bin.zip" \
+            "https://mirrors.cloud.tencent.com/gradle/gradle-8.5-bin.zip" ; do
+            echo "== try: $url =="
+            if curl -fsSL -o /tmp/gradle.zip "$url" && unzip -tq /tmp/gradle.zip >/dev/null 2>&1; then
+              echo "download OK from $url"
+              break
+            fi
+            echo "failed, try next source"
+          done
           unzip -q /tmp/gradle.zip -d /tmp
-          /tmp/gradle-8.2.2/bin/gradle --version
+          /tmp/gradle-8.5/bin/gradle --version
 
       - name: Build Debug APK
-        run: /tmp/gradle-8.2.2/bin/gradle :app:assembleDebug --no-daemon
+        run: /tmp/gradle-8.5/bin/gradle :app:assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
