@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.imuhar'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.example.imuhar"
+        minSdk 24           // Android 7.0+，覆盖绝大多数设备
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    // 防止 assets 中的模型/二进制被压缩，保证可内存映射加载
+    aaptOptions {
+        noCompress "tflite", "bin", "json"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    // TensorFlow Lite 推理引擎（含内置 int8 算子）
+    implementation 'org.tensorflow:tensorflow-lite:2.16.1'
+}

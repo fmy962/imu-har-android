@@ -1,0 +1,17 @@
+# Android 构建产物
+.gradle/
+build/
+app/build/
+gradle-dist/
+local.properties
+*.log
+build_log.txt
+build_stdout.txt
+
+# 本地构建脚本（仅本机用，不入库）
+setup_and_build.bat
+build_apk.ps1
+build_apk_proxy.ps1
+
+# 杂项
+.DS_Store
