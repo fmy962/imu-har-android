@@ -1,4 +1,6 @@
-// 项目级 build.gradle（Android Studio 自动生成，已配置 TFLite 所需仓库）
+// 项目级 build.gradle
+// 注意：依赖仓库已在 settings.gradle 的 dependencyResolutionManagement 中统一声明，
+// 这里不要再写 allprojects { repositories }，否则与 FAIL_ON_PROJECT_REPOS 冲突。
 buildscript {
     repositories {
         google()
@@ -6,12 +8,5 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.2'
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
     }
 }
