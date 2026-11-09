@@ -53,7 +53,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final long CALIB_MS = 2000;          // 开局静止校准时长
     private static final float EMA_ALPHA = 0.30f;       // 概率指数平滑系数
     private static final float CONF_THRESHOLD = 0.30f;  // 低于此置信度显示“不确定”
-    private static final float STILL_ENERGY = 0.03f;    // 加速度能量低于此判“静止”
+    private static final float STILL_ENERGY = 0.05f;    // 动态加速度能量(去重力)低于此判“静止”(RMS≈0.22g)
+    private static final float STILL_GYRO = 2.0f;       // 陀螺仪能量(°/s²)低于此判“静止”
     private static final int VOTE_WINDOW = 6;           // 投票窗口帧数
 
     // 状态机
@@ -382,11 +383,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         int smoothIdx = argmax(probEma);
 
-        // 静止检测：加速度能量（对齐、换算后，单位 g）
-        float energy = 0f;
+        // 静止检测：对齐后重力在 +Z，动态加速度为前 2 轴 (ax,ay)；陀螺仪能量(°/s²)
+        float dynAcc = 0f;
         for (int t = 0; t < WINDOW; t++)
-            for (int c = 0; c < 3; c++) energy += window[t][c] * window[t][c];
-        energy /= (WINDOW * 3);
+            dynAcc += window[t][0] * window[t][0] + window[t][1] * window[t][1];
+        dynAcc /= WINDOW;
+        float gyroE = 0f;
+        for (int t = 0; t < WINDOW; t++)
+            for (int c = 3; c < 6; c++) gyroE += window[t][c] * window[t][c];
+        gyroE /= WINDOW;
+        boolean still = (dynAcc < STILL_ENERGY) && (gyroE < STILL_GYRO);
 
         // 投票（最近 VOTE_WINDOW 帧的平滑 argmax）
         voteBuf.add(smoothIdx);
@@ -395,7 +401,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float voteConf = probEma[voteIdx];
 
         // 结果展示
-        if (energy < STILL_ENERGY) {
+        if (still) {
             tvResult.setText("静止");
         } else if (voteConf < CONF_THRESHOLD) {
             tvResult.setText("活动中（不确定）");
@@ -405,7 +411,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         updateBars(probEma);
         tvStatus.setText("实时检测中… 缓冲=" + count + "  | 加速度能量="
-                + String.format("%.3f", energy) + (aligned ? "  [已对齐]" : "  [未对齐]"));
+                + String.format("%.3f", dynAcc) + (aligned ? "  [已对齐]" : "  [未对齐]"));
     }
 
     /** 将最近 WINDOW_MS 的样本线性插值到 40 个等间隔点（45 ms） */
