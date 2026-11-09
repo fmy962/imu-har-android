@@ -24,37 +24,44 @@ import java.util.ArrayList;
 import java.util.Random;
 
 /**
- * IMU 人体活动识别 —— Android 端实时检测（v1.2）
+ * IMU 人体活动识别 —— Android 端实时检测（v1.3）
  * --------------------------------------------------
- * 训练规格（与训练端严格一致）：
- *   加速度 ax/ay/az 单位 g（含重力），陀螺仪 gx/gy/gz 单位 °/s
+ * 训练规格（与训练端严格一致，已离线验证）：
+ *   加速度 ax/ay/az 单位 m/s²（含重力，重力≈9.8），陀螺仪 gx/gy/gz 单位 °/s
  *   采样率 ≈22.2 Hz、窗口 40 样本 = 1.8 s；按通道 Z-Score（scaler.json）
  *   模型输入 (1,40,8) 时间优先；前 6 路真实 IMU，后 2 路零填充
  *
- * 本版改进（针对“腕戴模型放到手持手机上效果差”）：
- *   1) 开局重力对齐校准：静止 2 s 估计重力方向，把设备坐标系旋转到
- *      重力恒在 +Z 轴的标准姿态，缓解“任意握持”导致的轴系差异。
- *   2) 输出 EMA 平滑 + 最近帧多数投票，结果不再单帧乱跳。
- *   3) 静止检测 + 低置信度判定：手不动/不确定时不再瞎报。
+ * 关键量纲（实测踩坑结论）：
+ *   手机加速度已是 m/s²，与训练同量纲 —— 直接喂，禁止 ÷9.8（否则准确率从 96% 掉到 39%）。
+ *   手机陀螺仪是 rad/s，需 ×57.2958 转 °/s 才与训练一致。
+ *
+ * 本版改进：
+ *   1) 修正加速度量纲 bug（v1.2 误将 m/s² 当 g 缩小 9.8 倍，识别几乎随机）。
+ *   2) 开局重力对齐校准：静止 2 s 估计重力方向，把坐标系旋转到重力恒在 +Z 的标准姿态，
+ *      缓解“任意握持”导致的轴系差异。
+ *   3) 输出 EMA 平滑 + 最近帧多数投票，结果不再单帧乱跳。
+ *   4) 静止检测 + 低置信度判定：手不动/不确定时不再瞎报。
  */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     // ---------- 训练规格常量 ----------
+    // 训练数据：加速度 ax/ay/az 单位 m/s²（含重力，重力≈9.8），陀螺仪 gx/gy/gz 单位 °/s
+    // 手机传感器：加速度 TYPE_ACCELEROMETER 输出 m/s²，陀螺仪 TYPE_GYROSCOPE 输出 rad/s
+    //   => 加速度“直接喂”（与训练同为 m/s²，切勿 ÷9.8）；陀螺仪 rad/s ×57.3 -> °/s
     private static final float SAMPLE_HZ = 22.222f;     // 1000 / 45 ms
     private static final long WINDOW_MS = 1800;         // 40 × 45 ms = 1.8 s
     private static final long STEP_MS = 45;             // 重采样间隔
     private static final int WINDOW = 40;
     private static final int CHANNELS = 6;
-    private static final float GRAVITY = 9.80665f;      // m/s² -> g
-    private static final float RAD2DEG = 57.2957795f;   // rad/s -> °/s
+    private static final float RAD2DEG = 57.2957795f;   // rad/s -> °/s（仅陀螺仪需要）
     private static final long INFER_PERIOD = 250;       // 推理节拍(ms)
 
     // ---------- 校准 / 后处理参数 ----------
     private static final long CALIB_MS = 2000;          // 开局静止校准时长
     private static final float EMA_ALPHA = 0.30f;       // 概率指数平滑系数
     private static final float CONF_THRESHOLD = 0.30f;  // 低于此置信度显示“不确定”
-    private static final float STILL_ENERGY = 0.05f;    // 动态加速度能量(去重力)低于此判“静止”(RMS≈0.22g)
-    private static final float STILL_GYRO = 2.0f;       // 陀螺仪能量(°/s²)低于此判“静止”
+    private static final float STILL_ENERGY = 0.10f;    // 动态加速度能量(去重力, m/s²²)低于此判“静止”(RMS≈0.32 m/s²)
+    private static final float STILL_GYRO = 5.0f;       // 陀螺仪能量(°/s²)低于此判“静止”
     private static final int VOTE_WINDOW = 6;           // 投票窗口帧数
 
     // 状态机
@@ -366,10 +373,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             window = resample(seg, segTs, start);
         }
 
-        // 重力对齐（仅旋转，不改量纲） + 单位换算（m/s² -> g，rad/s -> °/s）
+        // 重力对齐（仅旋转坐标系，不改量纲） + 陀螺仪单位换算（rad/s -> °/s）
+        // 注意：加速度保持 m/s² 直接喂（与训练同量纲），不要再除以 9.80665
         for (int t = 0; t < WINDOW; t++) {
             if (aligned) rotateVec(window[t]);   // 旋转前 3（加速度）与后 3（陀螺仪）
-            for (int c = 0; c < 3; c++) window[t][c] /= GRAVITY;
             for (int c = 3; c < 6; c++) window[t][c] *= RAD2DEG;
         }
 
